@@ -10,6 +10,9 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="OopGames.Desktop.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\OopGames.Core\OopGames.Core.csproj" />
   </ItemGroup>
 </Project>

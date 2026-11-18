@@ -24,9 +24,10 @@ All of them open from the launcher window, in the order they were made during th
 ## Structure
 
 ```
-src/OopGames.Core       Game rules only (net10.0, no UI): characters, combat, battles, the 21 game
-src/OopGames.Desktop    Windows Forms app (net10.0-windows): launcher and one form per project
-tests/OopGames.Core.Tests   xUnit tests for every rule in OopGames.Core
+src/OopGames.Core             Game rules only (net10.0, no UI): characters, combat, battles, the 21 game
+src/OopGames.Desktop          Windows Forms app (net10.0-windows): launcher and one form per project
+tests/OopGames.Core.Tests     xUnit tests for every rule in OopGames.Core
+tests/OopGames.Desktop.Tests  Smoke tests that build and lay out every window
 ```
 
 The forms do not contain game logic: they call methods such as `TowerBattle.Attack` or `TwentyOneGame.Draw`
