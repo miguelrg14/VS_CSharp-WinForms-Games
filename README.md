@@ -1,6 +1,6 @@
-# OOP Games in C# (Windows Forms)
+# C# WinForms Games
 
-[![Build & Test](https://github.com/miguelrg14/VS_OOP_Examples/actions/workflows/dotnet.yml/badge.svg)](https://github.com/miguelrg14/VS_OOP_Examples/actions/workflows/dotnet.yml)
+[![Build & Test](https://github.com/miguelrg14/VS_CSharp-WinForms-Games/actions/workflows/dotnet.yml/badge.svg)](https://github.com/miguelrg14/VS_CSharp-WinForms-Games/actions/workflows/dotnet.yml)
 
 Object-oriented programming coursework from my second year of Computer Science & Video Game Engineering at
 ESNE (2020–2022), refactored into a single .NET 10 solution: a desktop launcher with five Windows Forms projects,
@@ -37,19 +37,30 @@ though the windows themselves only run on Windows.
 The forms are built in code (no designer files), so each screen can be read top to bottom in one file.
 The unit sprites are drawn at runtime with GDI+, so the project contains no third-party art or audio.
 
+## Download
+
+A ready-to-run build is on the [Releases page](https://github.com/miguelrg14/VS_CSharp-WinForms-Games/releases/latest):
+download `OopGames-win-x64.zip`, extract it and run `OopGames.Desktop.exe`. Windows only; no .NET installation is needed.
+
 ## Getting started
 
 Requires Windows and the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```bash
-git clone https://github.com/miguelrg14/VS_OOP_Examples.git
-cd VS_OOP_Examples
+git clone https://github.com/miguelrg14/VS_CSharp-WinForms-Games.git
+cd VS_CSharp-WinForms-Games
 
 dotnet run --project src/OopGames.Desktop   # opens the launcher
 dotnet test                                  # runs the rule tests
 ```
 
 Or open `OopGames.sln` in Visual Studio and run `OopGames.Desktop`.
+
+## Continuous integration
+
+- Every push and pull request builds the solution on Windows and runs all the tests.
+- Pushing a version tag (`git tag v1.0.0 && git push origin v1.0.0`) publishes a self-contained, single-file
+  `.exe` to Releases.
 
 ## Design notes
 

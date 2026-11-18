@@ -6,8 +6,6 @@ on:
   push:
     tags:
       - "v*"
-    branches:
-      - release-workflow # TEMPORARY: verifies the build; removed before merging.
 
 permissions:
   contents: write # Needed to create the release.
@@ -44,7 +42,6 @@ jobs:
           Compress-Archive -Path publish/* -DestinationPath OopGames-win-x64.zip
 
       - name: Create release
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: >
@@ -52,10 +49,3 @@ jobs:
           --title "OOP Games ${{ github.ref_name }}"
           --notes "Download OopGames-win-x64.zip, extract it and run OopGames.Desktop.exe. Windows only; no installation needed."
           --generate-notes
-
-      - name: Upload build (branch runs only)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: OopGames-win-x64
-          path: OopGames-win-x64.zip
