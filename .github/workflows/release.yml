@@ -1,0 +1,61 @@
+name: Release
+
+# Push a version tag (for example: git tag v1.0.0 && git push origin v1.0.0)
+# and this workflow builds a ready-to-run .exe and publishes it on the Releases page.
+on:
+  push:
+    tags:
+      - "v*"
+    branches:
+      - release-workflow # TEMPORARY: verifies the build; removed before merging.
+
+permissions:
+  contents: write # Needed to create the release.
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      # Self-contained: .NET is bundled, so players do not need to install anything.
+      # Single file: the whole app is one .exe.
+      - name: Publish
+        run: >
+          dotnet publish src/OopGames.Desktop/OopGames.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=None
+          --output publish
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item README.md, LICENSE publish/
+          Compress-Archive -Path publish/* -DestinationPath OopGames-win-x64.zip
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create ${{ github.ref_name }} OopGames-win-x64.zip
+          --title "OOP Games ${{ github.ref_name }}"
+          --notes "Download OopGames-win-x64.zip, extract it and run OopGames.Desktop.exe. Windows only; no installation needed."
+          --generate-notes
+
+      - name: Upload build (branch runs only)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: OopGames-win-x64
+          path: OopGames-win-x64.zip
