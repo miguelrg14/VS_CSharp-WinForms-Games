@@ -6,8 +6,9 @@ Object-oriented programming coursework from my second year of Computer Science &
 ESNE (2020–2022), refactored into a single .NET 10 solution: a desktop launcher with five Windows Forms projects,
 from inheritance basics to two-player blackjack, with every game rule kept in a separate, unit-tested library.
 
-Part 2 of my university C# work. Part 1, console fundamentals and data structures:
-[VS_CSharp-Fundamentals](https://github.com/miguelrg14/VS_CSharp-Fundamentals).
+Part 2 of my university C# work. Also see
+[VS_CSharp-Fundamentals](https://github.com/miguelrg14/VS_CSharp-Fundamentals) (part 1: console fundamentals and data structures) and
+[VS_CSharp-Networking](https://github.com/miguelrg14/VS_CSharp-Networking) (part 3: TCP group chat, threads and sockets).
 
 ## Projects
 
