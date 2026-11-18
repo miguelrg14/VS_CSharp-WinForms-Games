@@ -22,9 +22,9 @@ internal sealed class LauncherForm : Form
         new("Weapon arena",
             "Three against three with the sword > axe > spear triangle. Pick who attacks whom.",
             () => new ArenaForm()),
-        new("Twenty-one duel",
-            "Final project: a two-player 21 card duel with health, shields, bets and trump cards.",
-            () => new TwentyOneForm()),
+        new("Blackjack",
+            "Final project: two-player blackjack where winning a round hurts the other player. With health, shields, bets and trump cards.",
+            () => new BlackjackForm()),
     ];
 
     public LauncherForm()

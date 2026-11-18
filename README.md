@@ -19,18 +19,18 @@ All of them open from the launcher window, in the order they were made during th
 | 2 | **Duel** | A striker with critical hits against a guardian with a shield. Both implement `IAttacker` and `IDamageable`, so one `DuelRules.Attack` method works for any pair |
 | 3 | **Elemental tower** | Fight a queue of fire, water and grass enemies; the element chart doubles or halves your damage |
 | 4 | **Weapon arena** | Three against three with the sword > axe > spear triangle. You choose who attacks whom; the enemy AI looks for targets it beats |
-| 5 | **Twenty-one duel** | Final project. Two players draw cards 1–11 trying to get closest to 21 without going over. The round winner hits the loser, and coins buy trump cards that add damage or shield, return a card, raise the target to 24 or 27, or take away points |
+| 5 | **Blackjack** | Final project. Two players draw cards 1–11 trying to get closest to 21 without going over. The round winner hits the loser, and coins buy trump cards that add damage or shield, return a card, raise the target to 24 or 27, or take away points |
 
 ## Structure
 
 ```
-src/OopGames.Core             Game rules only (net10.0, no UI): characters, combat, battles, the 21 game
+src/OopGames.Core             Game rules only (net10.0, no UI): characters, combat, battles, blackjack
 src/OopGames.Desktop          Windows Forms app (net10.0-windows): launcher and one form per project
 tests/OopGames.Core.Tests     xUnit tests for every rule in OopGames.Core
 tests/OopGames.Desktop.Tests  Smoke tests that build and lay out every window
 ```
 
-The forms do not contain game logic: they call methods such as `TowerBattle.Attack` or `TwentyOneGame.Draw`
+The forms do not contain game logic: they call methods such as `TowerBattle.Attack` or `BlackjackGame.Draw`
 and redraw the state. Because the rules live in a plain class library, they are tested on every push, even
 though the windows themselves only run on Windows.
 

@@ -1,13 +1,13 @@
-using OopGames.Core.TwentyOne;
+using OopGames.Core.Blackjack;
 using OopGames.Desktop.Ui;
 
 namespace OopGames.Desktop.Forms;
 
 /// <summary>
-/// Hot-seat twenty-one duel. The form only forwards clicks to <see cref="TwentyOneGame"/> and redraws
+/// Hot-seat blackjack duel. The form only forwards clicks to <see cref="BlackjackGame"/> and redraws
 /// its state; the opponent's cards and trumps stay hidden while it is not their turn.
 /// </summary>
-internal sealed class TwentyOneForm : Form
+internal sealed class BlackjackForm : Form
 {
     private const string Rules =
         "Cards 1 to 11 are dealt once per round. On your turn, draw a card or pass.\n" +
@@ -24,7 +24,7 @@ internal sealed class TwentyOneForm : Form
     {
         public PlayerPanel(string title)
         {
-            Health = UiKit.HealthBar(TwentyOneGame.StartingHealth);
+            Health = UiKit.HealthBar(BlackjackGame.StartingHealth);
             Stats = UiKit.Text();
             Hand = UiKit.Text(bold: true, maxWidth: 260);
             Trumps = UiKit.Text(maxWidth: 260);
@@ -49,17 +49,17 @@ internal sealed class TwentyOneForm : Form
     private readonly ComboBox _trumpChoice = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
     private readonly ListBox _log = UiKit.Log();
     private readonly List<Button> _actions = [];
-    private TwentyOneGame _game = null!;
+    private BlackjackGame _game = null!;
 
-    public TwentyOneForm()
+    public BlackjackForm()
     {
-        UiKit.SetUpWindow(this, "Twenty-one duel");
+        UiKit.SetUpWindow(this, "Blackjack");
 
         FlowLayoutPanel actions = UiKit.Row(
             ActionButton("Draw card", Draw),
             ActionButton("Pass", PassTurn),
             ActionButton("Bet 1 coin", RaiseBet),
-            ActionButton($"Buy trump ({TwentyOneGame.TrumpPrice} coin)", BuyTrump, 140));
+            ActionButton($"Buy trump ({BlackjackGame.TrumpPrice} coin)", BuyTrump, 140));
         FlowLayoutPanel trumps = UiKit.Row(UiKit.Text("Your trump cards:"), _trumpChoice, ActionButton("Use", UseTrump, 70));
 
         var logPanel = new Panel { Size = new Size(600, 170) };
@@ -85,7 +85,7 @@ internal sealed class TwentyOneForm : Form
 
     private void NewGame()
     {
-        _game = new TwentyOneGame("Player 1", "Player 2", _random);
+        _game = new BlackjackGame("Player 1", "Player 2", _random);
         _log.Items.Clear();
         UiKit.Append(_log, ["New game. Player 1 starts."]);
         _actions.ForEach(b => b.Enabled = true);
@@ -133,7 +133,7 @@ internal sealed class TwentyOneForm : Form
     /// <summary>Drawing passes the turn, so the card is shown to its owner right away, before the seats change.</summary>
     private void Draw()
     {
-        TwentyOnePlayer player = _game.ActivePlayer;
+        BlackjackPlayer player = _game.ActivePlayer;
         int roundBefore = _game.Round;
         int card = _game.Draw();
         UiKit.Append(_log, [$"{player.Name} draws a card."]);
@@ -203,7 +203,7 @@ internal sealed class TwentyOneForm : Form
 
         for (int i = 0; i < _panels.Length; i++)
         {
-            TwentyOnePlayer player = _game.Players[i];
+            BlackjackPlayer player = _game.Players[i];
             PlayerPanel panel = _panels[i];
             bool visible = revealAll || (!hideAll && i == _game.ActiveIndex);
 

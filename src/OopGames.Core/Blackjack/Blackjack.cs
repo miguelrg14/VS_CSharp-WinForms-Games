@@ -1,4 +1,4 @@
-namespace OopGames.Core.TwentyOne;
+namespace OopGames.Core.Blackjack;
 
 /// <summary>Single-use cards bought with coins that bend the rules of the current round.</summary>
 public enum TrumpCard
@@ -22,12 +22,12 @@ public enum TrumpCard
     MinusTwo,
 }
 
-public sealed class TwentyOnePlayer
+public sealed class BlackjackPlayer
 {
     private readonly List<int> _hand = [];
     private readonly Dictionary<TrumpCard, int> _trumps = Enum.GetValues<TrumpCard>().ToDictionary(t => t, _ => 0);
 
-    internal TwentyOnePlayer(string name, int health, int baseDamage, int coins)
+    internal BlackjackPlayer(string name, int health, int baseDamage, int coins)
     {
         Name = name;
         Health = health;
@@ -141,12 +141,12 @@ public sealed class TwentyOnePlayer
 public sealed record RoundResult(int? WinnerIndex, int PointsPlayerOne, int PointsPlayerTwo, int Target, int HealthLost, int PotWon);
 
 /// <summary>
-/// Two-player "21" duel. Cards 1-11 appear once per round. On your turn you draw or pass; the round ends
+/// Two-player blackjack duel. Cards 1-11 appear once per round. On your turn you draw or pass; the round ends
 /// when both players pass in a row or the deck runs out. The player closest to the target without
 /// going over wins the round and hits the other one. Lose all your health and you lose the game.
 /// All the rules live here; the form only calls these methods and draws the state.
 /// </summary>
-public sealed class TwentyOneGame
+public sealed class BlackjackGame
 {
     public const int HighestCard = 11;
     public const int DefaultTarget = 21;
@@ -159,27 +159,27 @@ public sealed class TwentyOneGame
 
     private readonly Random _random;
     private readonly List<int> _deck = [];
-    private readonly TwentyOnePlayer[] _players;
+    private readonly BlackjackPlayer[] _players;
     private int _consecutivePasses;
     private int _roundStarter;
 
-    public TwentyOneGame(string playerOneName, string playerTwoName, Random random)
+    public BlackjackGame(string playerOneName, string playerTwoName, Random random)
     {
         _random = random;
         _players =
         [
-            new TwentyOnePlayer(playerOneName, StartingHealth, BaseDamage, StartingCoins),
-            new TwentyOnePlayer(playerTwoName, StartingHealth, BaseDamage, StartingCoins),
+            new BlackjackPlayer(playerOneName, StartingHealth, BaseDamage, StartingCoins),
+            new BlackjackPlayer(playerTwoName, StartingHealth, BaseDamage, StartingCoins),
         ];
         BankCoins = StartingBankCoins;
         StartRound();
     }
 
-    public IReadOnlyList<TwentyOnePlayer> Players => _players;
+    public IReadOnlyList<BlackjackPlayer> Players => _players;
 
     public int ActiveIndex { get; private set; }
 
-    public TwentyOnePlayer ActivePlayer => _players[ActiveIndex];
+    public BlackjackPlayer ActivePlayer => _players[ActiveIndex];
 
     public int CardsLeft => _deck.Count;
 
@@ -268,7 +268,7 @@ public sealed class TwentyOneGame
     public bool TryUseTrump(TrumpCard card, out string? error)
     {
         EnsurePlaying();
-        TwentyOnePlayer player = ActivePlayer;
+        BlackjackPlayer player = ActivePlayer;
         if (player.Trumps[card] == 0)
         {
             error = "You do not have that card.";
@@ -341,8 +341,8 @@ public sealed class TwentyOneGame
 
         if (winnerIndex is int w)
         {
-            TwentyOnePlayer winner = _players[w];
-            TwentyOnePlayer loser = _players[1 - w];
+            BlackjackPlayer winner = _players[w];
+            BlackjackPlayer loser = _players[1 - w];
             healthLost = loser.TakeHit(winner.Damage);
             winner.ResetBonusDamage(); // Power Up only lasts for one winning round.
 
@@ -355,7 +355,7 @@ public sealed class TwentyOneGame
         }
         else
         {
-            foreach (TwentyOnePlayer player in _players)
+            foreach (BlackjackPlayer player in _players)
             {
                 player.ReceiveCoins(player.TakeBet()); // Nobody won: bets go back to their owners.
             }
@@ -374,7 +374,7 @@ public sealed class TwentyOneGame
         Round++;
         _deck.Clear();
         _deck.AddRange(Enumerable.Range(1, HighestCard));
-        foreach (TwentyOnePlayer player in _players)
+        foreach (BlackjackPlayer player in _players)
         {
             player.ClearRound();
         }
@@ -384,7 +384,7 @@ public sealed class TwentyOneGame
         ActiveIndex = _roundStarter;
     }
 
-    private void PayFromBank(TwentyOnePlayer player, int coins)
+    private void PayFromBank(BlackjackPlayer player, int coins)
     {
         int paid = Math.Min(coins, BankCoins);
         BankCoins -= paid;

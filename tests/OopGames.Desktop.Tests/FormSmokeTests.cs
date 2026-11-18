@@ -11,7 +11,7 @@ namespace OopGames.Desktop.Tests;
 /// </summary>
 public class FormSmokeTests
 {
-    public static TheoryData<string> FormNames => ["Launcher", "Basics", "Duel", "ElementalTower", "Arena", "TwentyOne"];
+    public static TheoryData<string> FormNames => ["Launcher", "Basics", "Duel", "ElementalTower", "Arena", "Blackjack"];
 
     [Theory]
     [MemberData(nameof(FormNames))]
@@ -24,7 +24,7 @@ public class FormSmokeTests
             "Duel" => new DuelForm(),
             "ElementalTower" => new ElementalTowerForm(),
             "Arena" => new ArenaForm(),
-            _ => new TwentyOneForm(),
+            _ => new BlackjackForm(),
         };
 
         form.PerformLayout();
