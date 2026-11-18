@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Game rules only, with no reference to Windows Forms: they build and are tested on any OS. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="OopGames.Core.Tests" />
+  </ItemGroup>
+</Project>
