@@ -1,0 +1,40 @@
+name: Record README demos
+
+# Runs the latest release on Windows, plays each game with scripted clicks and uploads
+# screenshots of every step. They are turned into the animated demos in docs/.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - readme-demos # TEMPORARY: lets the recording run before merging; removed afterwards.
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo ${{ github.repository }} --pattern "OopGames-win-x64.zip"
+          Expand-Archive OopGames-win-x64.zip -DestinationPath app
+      - name: Play the games and take screenshots
+        run: .github/demo/record-demo.ps1 -Exe "$PWD\app\OopGames.Desktop.exe" -Out "$PWD\frames"
+      - name: Screenshot of the desktop if it failed
+        if: failure()
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bitmap).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          New-Item -ItemType Directory -Force frames | Out-Null
+          $bitmap.Save("$PWD\frames\failure-desktop.png")
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demo-frames
+          path: frames

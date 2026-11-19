@@ -1,0 +1,166 @@
+# Plays the games like a user (mouse clicks found through UI Automation) and saves a screenshot after
+# every step. The screenshots are turned into the README's animated demos.
+#
+# Usage: record-demo.ps1 -Exe path\to\OopGames.Desktop.exe -Out frames
+param(
+    [Parameter(Mandatory)] [string] $Exe,
+    [Parameter(Mandatory)] [string] $Out
+)
+
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms, System.Drawing
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class Native {
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+}
+'@
+[Native]::SetProcessDPIAware() | Out-Null
+
+$UIA = [System.Windows.Automation.AutomationElement]
+$Tree = [System.Windows.Automation.TreeScope]
+$Prop = [System.Windows.Automation.AutomationElement]
+$Type = [System.Windows.Automation.ControlType]
+
+New-Item -ItemType Directory -Force -Path $Out | Out-Null
+$script:frame = 0
+$script:manifest = @()
+
+function Wait-Window([string] $name, [int] $seconds = 30) {
+    $condition = New-Object System.Windows.Automation.PropertyCondition($Prop::NameProperty, $name)
+    for ($i = 0; $i -lt $seconds * 4; $i++) {
+        $window = $UIA::RootElement.FindFirst($Tree::Children, $condition)
+        if ($window) { return $window }
+        Start-Sleep -Milliseconds 250
+    }
+    throw "Window '$name' did not appear."
+}
+
+function Find-Button($window, [string] $name, [int] $index = 0) {
+    $condition = New-Object System.Windows.Automation.AndCondition(
+        (New-Object System.Windows.Automation.PropertyCondition($Prop::ControlTypeProperty, $Type::Button)),
+        (New-Object System.Windows.Automation.PropertyCondition($Prop::NameProperty, $name)))
+    $buttons = @($window.FindAll($Tree::Descendants, $condition))
+    $sorted = @($buttons | Sort-Object { $_.Current.BoundingRectangle.Y }, { $_.Current.BoundingRectangle.X })
+    if ($sorted.Count -le $index) { throw "Button '$name' #$index not found." }
+    return $sorted[$index]
+}
+
+function Click($element) {
+    $r = $element.Current.BoundingRectangle
+    [Native]::SetCursorPos([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)) | Out-Null
+    Start-Sleep -Milliseconds 120
+    [Native]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)   # left down
+    [Native]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)   # left up
+    Start-Sleep -Milliseconds 450
+}
+
+# Saves the area of $window (plus a margin) and how long the frame should stay on screen.
+function Snap($window, [string] $clip, [double] $seconds = 1.2) {
+    Start-Sleep -Milliseconds 250
+    $r = $window.Current.BoundingRectangle
+    $x = [int]$r.X - 8; $y = [int]$r.Y - 8; $w = [int]$r.Width + 16; $h = [int]$r.Height + 16
+    $bitmap = New-Object System.Drawing.Bitmap $w, $h
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.CopyFromScreen($x, $y, 0, 0, $bitmap.Size)
+    $file = "{0}-{1:D3}.png" -f $clip, $script:frame
+    $bitmap.Save((Join-Path $Out $file), [System.Drawing.Imaging.ImageFormat]::Png)
+    $graphics.Dispose(); $bitmap.Dispose()
+    $script:manifest += "$file,$seconds"
+    $script:frame++
+}
+
+# If the app opened a message box, show it in the demo and close it with Enter.
+function Handle-Dialogs($window, [string] $clip, [double] $seconds = 1.6) {
+    for ($n = 0; $n -lt 3; $n++) {
+        $condition = New-Object System.Windows.Automation.AndCondition(
+            (New-Object System.Windows.Automation.PropertyCondition($Prop::ProcessIdProperty, $script:app.Id)),
+            (New-Object System.Windows.Automation.PropertyCondition($Prop::ClassNameProperty, '#32770')))
+        $dialog = $UIA::RootElement.FindFirst($Tree::Children, $condition)
+        if (-not $dialog) { return }
+        Snap $window $clip $seconds
+        [Native]::SetForegroundWindow([IntPtr]$dialog.Current.NativeWindowHandle) | Out-Null
+        [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+        Start-Sleep -Milliseconds 500
+    }
+}
+
+function Close-Window($window) {
+    $window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
+    Start-Sleep -Milliseconds 800
+}
+
+function Open-Project($launcher, [int] $index, [string] $title) {
+    Click (Find-Button $launcher 'Open' $index)
+    $window = Wait-Window $title
+    [Native]::SetForegroundWindow([IntPtr]$window.Current.NativeWindowHandle) | Out-Null
+    Start-Sleep -Milliseconds 600
+    return $window
+}
+
+$script:app = Start-Process -FilePath $Exe -PassThru
+$launcher = Wait-Window 'OOP Games' 60
+Start-Sleep -Seconds 2
+Snap $launcher 'launcher' 3
+
+# Blackjack: draw and pass until a couple of rounds are played.
+$game = Open-Project $launcher 4 'Blackjack'
+Snap $game 'blackjack' 2
+$plan = @('Draw card', 'Draw card', 'Pass', 'Draw card', 'Draw card', 'Pass', 'Bet 1 coin', 'Draw card', 'Draw card', 'Pass', 'Draw card', 'Pass')
+foreach ($action in $plan) {
+    $button = Find-Button $game $action
+    if (-not $button.Current.IsEnabled) { break }
+    Click $button
+    Handle-Dialogs $game 'blackjack'
+    Snap $game 'blackjack'
+}
+Close-Window $game
+
+# Elemental tower: always use the element that beats the current enemy.
+$game = Open-Project $launcher 2 'Elemental tower'
+Snap $game 'tower' 2
+$counter = @{ Fire = 'Water'; Water = 'Grass'; Grass = 'Fire' }
+for ($turn = 0; $turn -lt 14; $turn++) {
+    $texts = @($game.FindAll($Tree::Descendants,
+        (New-Object System.Windows.Automation.PropertyCondition($Prop::ControlTypeProperty, $Type::Text))) |
+        ForEach-Object { $_.Current.Name })
+    $enemy = $texts | Where-Object { $_ -match '\((Fire|Water|Grass)\)' } | Select-Object -First 1
+    $element = if ($enemy -match '\((Fire|Water|Grass)\)') { $counter[$Matches[1]] } else { 'Fire' }
+    $button = Find-Button $game "$element attack"
+    if (-not $button.Current.IsEnabled) { break }
+    Click $button
+    Snap $game 'tower' 0.9
+    Handle-Dialogs $game 'tower' 2.5
+}
+Close-Window $game
+
+# Weapon arena: the first living unit on each side is selected automatically; attack until the battle ends.
+$game = Open-Project $launcher 3 'Weapon arena'
+Snap $game 'arena' 2
+for ($turn = 0; $turn -lt 14; $turn++) {
+    $button = Find-Button $game 'Attack!'
+    if (-not $button.Current.IsEnabled) { break }
+    Click $button
+    Snap $game 'arena' 0.9
+    Handle-Dialogs $game 'arena' 2.5
+}
+Close-Window $game
+
+# Duel: take turns attacking.
+$game = Open-Project $launcher 1 'Duel'
+Snap $game 'duel' 2
+for ($turn = 0; $turn -lt 8; $turn++) {
+    Click (Find-Button $game 'Striker attacks')
+    Snap $game 'duel' 0.9
+    Click (Find-Button $game 'Guardian attacks')
+    Snap $game 'duel' 0.9
+}
+Close-Window $game
+
+$script:manifest | Set-Content (Join-Path $Out 'frames.csv')
+Stop-Process -Id $script:app.Id -ErrorAction SilentlyContinue
+Write-Host "Saved $($script:frame) frames to $Out"
