@@ -1,12 +1,9 @@
 name: Record README demos
 
-# Builds the app on Windows, plays each game with scripted clicks and uploads
-# screenshots of every step. They are turned into the animated demos in docs/.
+# Builds the app on Windows, plays each game with scripted clicks and pushes a screenshot of
+# every step to the demo-frames branch. Those screenshots become the animated demos in docs/.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - readme-demos # TEMPORARY: lets the recording run before merging; removed afterwards.
 
 permissions:
   contents: write # pushes the screenshots to the demo-frames branch
