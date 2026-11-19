@@ -1,6 +1,6 @@
 name: Record README demos
 
-# Runs the latest release on Windows, plays each game with scripted clicks and uploads
+# Builds the app on Windows, plays each game with scripted clicks and uploads
 # screenshots of every step. They are turned into the animated demos in docs/.
 on:
   workflow_dispatch:
@@ -16,12 +16,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download the latest release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release download --repo ${{ github.repository }} --pattern "OopGames-win-x64.zip"
-          Expand-Archive OopGames-win-x64.zip -DestinationPath app
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build the app
+        run: dotnet publish src/OopGames.Desktop/OopGames.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --output app
       - name: Play the games and take screenshots
         run: .github/demo/record-demo.ps1 -Exe "$PWD\app\OopGames.Desktop.exe" -Out "$PWD\frames"
       - name: Screenshot of the desktop if it failed
