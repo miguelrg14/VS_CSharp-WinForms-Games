@@ -30,10 +30,24 @@ New-Item -ItemType Directory -Force -Path $Out | Out-Null
 $script:frame = 0
 $script:manifest = @()
 
+# Top-level windows of the app. A window opened with an owner (a game opened from the launcher, a
+# message box opened from a game) is listed by UI Automation under its owner, so look there as well.
+function Find-AppWindow([scriptblock] $test) {
+    $mine = New-Object System.Windows.Automation.PropertyCondition($Prop::ProcessIdProperty, $script:app.Id)
+    $queue = [System.Collections.Generic.Queue[object]]::new()
+    foreach ($w in $UIA::RootElement.FindAll($Tree::Children, $mine)) { $queue.Enqueue($w) }
+    $windowType = New-Object System.Windows.Automation.PropertyCondition($Prop::ControlTypeProperty, $Type::Window)
+    while ($queue.Count -gt 0) {
+        $w = $queue.Dequeue()
+        if (& $test $w) { return $w }
+        foreach ($child in $w.FindAll($Tree::Children, $windowType)) { $queue.Enqueue($child) }
+    }
+    return $null
+}
+
 function Wait-Window([string] $name, [int] $seconds = 30) {
-    $condition = New-Object System.Windows.Automation.PropertyCondition($Prop::NameProperty, $name)
     for ($i = 0; $i -lt $seconds * 4; $i++) {
-        $window = $UIA::RootElement.FindFirst($Tree::Children, $condition)
+        $window = Find-AppWindow { param($w) $w.Current.Name -eq $name }
         if ($window) { return $window }
         Start-Sleep -Milliseconds 250
     }
@@ -77,10 +91,7 @@ function Snap($window, [string] $clip, [double] $seconds = 1.2) {
 # If the app opened a message box, show it in the demo and close it with Enter.
 function Handle-Dialogs($window, [string] $clip, [double] $seconds = 1.6) {
     for ($n = 0; $n -lt 3; $n++) {
-        $condition = New-Object System.Windows.Automation.AndCondition(
-            (New-Object System.Windows.Automation.PropertyCondition($Prop::ProcessIdProperty, $script:app.Id)),
-            (New-Object System.Windows.Automation.PropertyCondition($Prop::ClassNameProperty, '#32770')))
-        $dialog = $UIA::RootElement.FindFirst($Tree::Children, $condition)
+        $dialog = Find-AppWindow { param($w) $w.Current.ClassName -eq '#32770' }
         if (-not $dialog) { return }
         Snap $window $clip $seconds
         [Native]::SetForegroundWindow([IntPtr]$dialog.Current.NativeWindowHandle) | Out-Null
