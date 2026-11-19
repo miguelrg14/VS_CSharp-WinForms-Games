@@ -138,6 +138,7 @@ public class ArenaTests
         Assert.True(events[0].Defeated);
         Assert.Equal(ArenaState.PlayerWon, battle.State);
         Assert.Equal(100, sword.Health);
+        Assert.Equal("Sword (Sword) hits Axe (Axe) for 60 - weapon advantage. Axe falls.", events[0].ToString());
     }
 
     [Fact]

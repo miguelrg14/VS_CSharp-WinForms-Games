@@ -77,7 +77,7 @@ public sealed record ArenaEvent(Unit Attacker, Unit Defender, int Damage, double
 {
     public override string ToString()
     {
-        string effect = Multiplier > 1 ? " - weapon advantage!" : Multiplier < 1 ? " - weapon disadvantage" : string.Empty;
+        string effect = Multiplier > 1 ? " - weapon advantage" : Multiplier < 1 ? " - weapon disadvantage" : string.Empty;
         string ending = Defeated ? $" {Defender.Name} falls." : string.Empty;
         return $"{Attacker.Name} ({Attacker.Weapon}) hits {Defender.Name} ({Defender.Weapon}) for {Damage}{effect}.{ending}";
     }

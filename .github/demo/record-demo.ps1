@@ -17,9 +17,44 @@ public static class Native {
     [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT { public int Left, Top, Right, Bottom; }
+
+    // The visible frame of a window, without the invisible resize border that GetWindowRect includes.
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out RECT rect, int size);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct DEVMODE {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+        public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+        public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+        public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+        public short dmLogPixels;
+        public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
+        public int dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+    }
+
+    [DllImport("user32.dll")] public static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE devMode);
+    [DllImport("user32.dll")] public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
+
+    public static int SetResolution(int width, int height) {
+        var mode = new DEVMODE();
+        mode.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+        EnumDisplaySettings(null, -1, ref mode);
+        mode.dmPelsWidth = width;
+        mode.dmPelsHeight = height;
+        mode.dmFields = 0x80000 | 0x100000; // DM_PELSWIDTH | DM_PELSHEIGHT
+        return ChangeDisplaySettings(ref mode, 0);
+    }
 }
 '@
 [Native]::SetProcessDPIAware() | Out-Null
+# The runner's screen is 1024x768 by default, too small for the bigger windows.
+Write-Host "Set resolution: $([Native]::SetResolution(1920, 1080))"
+Start-Sleep -Seconds 2
 
 $UIA = [System.Windows.Automation.AutomationElement]
 $Tree = [System.Windows.Automation.TreeScope]
@@ -73,11 +108,12 @@ function Click($element) {
     Start-Sleep -Milliseconds 450
 }
 
-# Saves the area of $window (plus a margin) and how long the frame should stay on screen.
+# Saves the area of $window and how long the frame should stay on screen.
 function Snap($window, [string] $clip, [double] $seconds = 1.2) {
     Start-Sleep -Milliseconds 250
-    $r = $window.Current.BoundingRectangle
-    $x = [int]$r.X - 8; $y = [int]$r.Y - 8; $w = [int]$r.Width + 16; $h = [int]$r.Height + 16
+    $rect = New-Object Native+RECT
+    [Native]::DwmGetWindowAttribute([IntPtr]$window.Current.NativeWindowHandle, 9, [ref]$rect, 16) | Out-Null
+    $x = $rect.Left; $y = $rect.Top; $w = $rect.Right - $rect.Left; $h = $rect.Bottom - $rect.Top
     $bitmap = New-Object System.Drawing.Bitmap $w, $h
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     $graphics.CopyFromScreen($x, $y, 0, 0, $bitmap.Size)
@@ -118,10 +154,11 @@ $launcher = Wait-Window 'OOP Games' 60
 Start-Sleep -Seconds 2
 Snap $launcher 'launcher' 3
 
-# Blackjack: draw and pass until a couple of rounds are played.
+# Blackjack: each action passes the turn to the other player, and two passes in a row end the round.
 $game = Open-Project $launcher 4 'Blackjack'
 Snap $game 'blackjack' 2
-$plan = @('Draw card', 'Draw card', 'Pass', 'Draw card', 'Draw card', 'Pass', 'Bet 1 coin', 'Draw card', 'Draw card', 'Pass', 'Draw card', 'Pass')
+$round = @('Draw card', 'Draw card', 'Draw card', 'Draw card', 'Pass', 'Pass')
+$plan = @('Bet 1 coin') + $round + @('Draw card', 'Bet 1 coin') + $round + $round
 foreach ($action in $plan) {
     $button = Find-Button $game $action
     if (-not $button.Current.IsEnabled) { break }
@@ -135,7 +172,7 @@ Close-Window $game
 $game = Open-Project $launcher 2 'Elemental tower'
 Snap $game 'tower' 2
 $counter = @{ Fire = 'Water'; Water = 'Grass'; Grass = 'Fire' }
-for ($turn = 0; $turn -lt 14; $turn++) {
+for ($turn = 0; $turn -lt 24; $turn++) {
     $texts = @($game.FindAll($Tree::Descendants,
         (New-Object System.Windows.Automation.PropertyCondition($Prop::ControlTypeProperty, $Type::Text))) |
         ForEach-Object { $_.Current.Name })
